@@ -1,3 +1,7 @@
+数据库用的sqlite，代码上免除了配置数据库的过程 ~~但是要装python~~
+基本上装个httpapi，输个4行代码就能跑
+
+
 [项目地址](https://github.com/liu-zhou-L/swordbot)
 
 # swordbot
@@ -61,6 +65,7 @@ pipenv run python bot.py
 目前支持的指令
 
 ```
+宝剑系统：查看可用指令
 我的宝剑：查看自己的宝剑信息
 白嫖宝剑：获得一把宝剑
 比划比划@群内用户：和群内用户进行对决，赚取宝剑长度
@@ -74,4 +79,4 @@ pipenv run python bot.py
 ```
 
 
-对`python`、`Mirai`、`Graia`的使用均为入门级，代码一塌糊涂，qwq
+对`python`、`Mirai`、`Graia`的使用均为小白级，代码一塌糊涂，qwq
