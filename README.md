@@ -1,5 +1,5 @@
 # swordbot
-一个基于'Mirai'和'Graia'实现的宝剑游戏机器人（复刻[https://github.com/Micalhl/NiuZi](https://github.com/Micalhl/NiuZi)）
+一个基于`Mirai`和`Graia`实现的宝剑游戏机器人（复刻[https://github.com/Micalhl/NiuZi](https://github.com/Micalhl/NiuZi)）
 
 **python_version >= '3.8' and python_version < '4.0'**
 
