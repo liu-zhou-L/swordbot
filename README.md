@@ -14,7 +14,7 @@
 将项目克隆到本地
 
 ```
-git clone 
+git clone git@github.com:liu-zhou-L/swordbot.git
 ```
 
 安装'pipenv'，如果已安装忽略此步
