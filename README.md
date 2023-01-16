@@ -1,3 +1,5 @@
+[项目地址](https://github.com/liu-zhou-L/swordbot)
+
 # swordbot
 一个基于`Mirai`和`Graia`实现的宝剑游戏机器人（复刻[https://github.com/Micalhl/NiuZi](https://github.com/Micalhl/NiuZi)）
 
@@ -17,13 +19,13 @@
 git clone git@github.com:liu-zhou-L/swordbot.git
 ```
 
-安装'pipenv'，如果已安装忽略此步
+安装`pipenv`，如果已安装忽略此步
 
 ```
 pip3 install pipenv
 ```
 
-使用'pipenv'创建虚拟环境并安装依赖
+使用`pipenv`创建虚拟环境并安装依赖
 
 ```
 pipenv install -r requirements.txt
@@ -70,3 +72,6 @@ pipenv run python bot.py
 冲咖啡：冲杯咖啡赚取宝剑长度
 宝剑改名+新名称：接受长度在2~30的宝剑名称，会自动去除所有空格，改名成功会消耗 25cm 长度
 ```
+
+
+对`python`、`Mirai`、`Graia`的使用均为入门级，代码一塌糊涂，qwq
