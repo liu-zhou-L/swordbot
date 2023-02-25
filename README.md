@@ -47,9 +47,9 @@ VerifyKey: "12345" # 填入 VerifyKey
 Host: "http://localhost:7789" # adapterSetting下的host
 GroupBlackList: [] # 群聊黑名单
 UserBlackList: [] # 用户黑名单
+CoreGroup: 345290994 # 机器人核心群号
 ```
 
-其中前三项启动后更改需重启机器人（不需要重启`Mirai`）
 `VerifyKey`和`Host`需填入`Mirai`路径下`config/net.mamoe.mirai-api-http/setting.yml`文件中对应的值
 
 ### 运行
