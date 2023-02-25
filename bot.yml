@@ -3,3 +3,4 @@ VerifyKey: "12345" # 填入 VerifyKey
 Host: "http://localhost:7789" # adapterSetting下的host
 GroupBlackList: []
 UserBlackList: []
+CoreGroup: 345290994
