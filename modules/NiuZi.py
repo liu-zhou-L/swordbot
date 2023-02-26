@@ -28,6 +28,8 @@ sex = ['男', '女']
 IS_FRIEND = 1
 IS_IN_COREGROUP = 1 << 1
 IS_IN_BLACKLIST = 1 << 2
+IS_NOT_OK = 1 << 3
+IS_NOT_JD = 1 << 4
 
 def get_bot_config():
     file = open("bot.yml", 'r', encoding="utf-8")
@@ -67,7 +69,8 @@ def createdb():
                     npy NUMBER,
                     coffee_tot NUMBER,
                     cfuntil TEXT,
-                    ttuntil TEXT);''')
+                    ttuntil TEXT,
+                    djtuntil TEXT);''')
                     # 0男 1女
         conn.commit()
         conn.close()
@@ -76,8 +79,8 @@ def initniuzi(member):
     with niuzi_Lock:
         conn = sqlite3.connect('NiuZi.db')
         cur = conn.cursor()
-        tdata = [(member.id, member.name + 'の宝剑', 0, str(random.uniform(8, 13)), str(0), -1, 0, str(0), str(0))]
-        cur.executemany('''INSERT INTO niuzi VALUES (?,?,?,?,?,?,?,?,?)''', tdata)
+        tdata = [(member.id, member.name + 'の宝剑', 0, str(random.uniform(8, 13)), str(0), -1, 0, str(0), str(0), str(0))]
+        cur.executemany('''INSERT INTO niuzi VALUES (?,?,?,?,?,?,?,?,?,?)''', tdata)
         conn.commit()
         conn.close()
 
@@ -91,7 +94,7 @@ def __getniuzi(id):
         conn.close()
     return ret
 
-def __setniuzi(cc=None, id=None, length=None, tsex=None, coffee_tot=None, cfuntil=None, tuntil=None, name=None, npy=None, ttuntil=None):
+def __setniuzi(cc=None, id=None, length=None, tsex=None, coffee_tot=None, cfuntil=None, tuntil=None, name=None, npy=None, ttuntil=None, djtuntil=None):
     if cc != None:
         if id == None:
             id=cc[0]
@@ -111,10 +114,12 @@ def __setniuzi(cc=None, id=None, length=None, tsex=None, coffee_tot=None, cfunti
             cfuntil = cc[7]
         if ttuntil == None:
             ttuntil = cc[8]
+        if djtuntil == None:
+            djtuntil = cc[9]
     with niuzi_Lock:
         conn = sqlite3.connect('NiuZi.db')
         cur = conn.cursor()
-        text_re = '''UPDATE niuzi SET length="%s", sex=%d, coffee_tot=%d, cfuntil="%s", stopuntil="%s", name="%s", npy=%d , ttuntil="%s" WHERE owner=%d;'''%(str(length), int(tsex), int(coffee_tot), str(cfuntil), str(tuntil), name, int(npy), str(ttuntil), int(id))
+        text_re = '''UPDATE niuzi SET length="%s", sex=%d, coffee_tot=%d, cfuntil="%s", stopuntil="%s", name="%s", npy=%d , ttuntil="%s", djtuntil="%s" WHERE owner=%d;'''%(str(length), int(tsex), int(coffee_tot), str(cfuntil), str(tuntil), name, int(npy), str(ttuntil), str(djtuntil), int(id))
         cur.execute(text_re)
         ret = cur.fetchone()
         conn.commit()
@@ -162,6 +167,7 @@ async def setqiandao():
 async def check_usr_stat(app, group, member):
     flag = 0
     data = get_bot_config()
+    memc = getniuzi(member.id)
     if (await app.get_friend(member)) == None:
         flag |= IS_FRIEND
     coregroup = await app.get_group(data['CoreGroup'])
@@ -170,6 +176,11 @@ async def check_usr_stat(app, group, member):
         flag |= IS_IN_COREGROUP
     if member.id in data['UserBlackList'] or group.id in data['GroupBlackList']:
         flag |= IS_IN_BLACKLIST
+    if memc != None:
+        if float(memc[4]) - time.time() > 0:
+            flag |= IS_NOT_OK
+        if float(memc[9]) - time.time() > 0:
+            flag |= IS_NOT_JD
     return flag
 
 @channel.use(ListenerSchema(
@@ -180,12 +191,12 @@ async def help(app: Ariadne, group: Group, member: Member):
     if checkblacklist(group.id, member.id):
         await app.send_message(
             group,
-            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
         )
         return
     await app.send_message(
         group,
-        MessageChain(At(member.id), f'\n我的宝剑：查看自己的宝剑信息\n白嫖宝剑：获得一把宝剑\n比划比划@群内用户：和群内用户进行对决，赚取宝剑长度\n随机比划: 与另一位随机宝剑对决，可跨群，无需@\n（群）宝剑榜：查看群内用户的宝剑排名\n总宝剑榜：查看宝剑系统所有宝剑的排名\n绑定对象+@群内用户：将自己的宝剑对象意向设定为某群内用户，互为彼此意向时，形成对象联系\n双修功法：与对象一起修炼，赚取宝剑长度（注意可能会走火入魔哦）\n冲咖啡：冲杯咖啡赚取宝剑长度\n宝剑改名+新名称：接受长度在2~30的宝剑名称，会自动去除所有空格，改名成功会消耗 25cm 长度\nBOT群号：{get_bot_config("CoreGroup")}，欢迎入群'),
+        MessageChain(At(member.id), f'\n我的宝剑：查看自己的宝剑信息\n白嫖宝剑：获得一把宝剑\n比划比划@群内用户：和群内用户进行对决，赚取宝剑长度\n随机比划: 与另一位随机宝剑对决，可跨群，无需@\n（群）宝剑榜：查看群内用户的宝剑排名\n总宝剑榜：查看宝剑系统所有宝剑的排名\n绑定对象+@群内用户：将自己的宝剑对象意向设定为某群内用户，互为彼此意向时，形成对象联系\n双修功法：与对象一起修炼，赚取宝剑长度（注意可能会走火入魔哦）\n冲咖啡：冲杯咖啡赚取宝剑长度\n宝剑改名+新名称：接受长度在2~30的宝剑名称，会自动去除所有空格，改名成功会消耗 25cm 长度\n冻结宝剑：冻结成功后长度减2500，对象自动解绑，一年后自动解冻\nBOT群号：{get_bot_config()["CoreGroup"]}，欢迎入群'),
     )
 
 def bjinfo(cc):
@@ -208,7 +219,7 @@ async def mine(app: Ariadne, group: Group, member: Member):
     if flag & IS_IN_BLACKLIST:
         await app.send_message(
             group,
-            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
         )
         return
 
@@ -220,7 +231,12 @@ async def mine(app: Ariadne, group: Group, member: Member):
             MessageChain(At(member.id), '\n你还没有宝剑，尝试 白嫖宝剑' + otherinfo(flag)),
         )
         return
-    
+    if float(c[9]) - time.time() > 0:
+        await app.send_message(
+            group,
+            MessageChain(At(member.id), '\n你的宝剑已冻结'),
+        )
+        return
     await app.send_message(
         group,
         MessageChain(At(member.id), bjinfo(c)),
@@ -235,7 +251,7 @@ async def shou(app: Ariadne, group: Group, member: Member):
     if flag & IS_IN_BLACKLIST:
         await app.send_message(
             group,
-            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
         )
         return
 
@@ -265,7 +281,7 @@ async def randpk(app: Ariadne, group: Group, member: Member, message: MessageCha
     if flag & IS_IN_BLACKLIST:
         await app.send_message(
             group,
-            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
         )
         return
 
@@ -295,11 +311,23 @@ async def randpk(app: Ariadne, group: Group, member: Member, message: MessageCha
                 MessageChain(At(member.id), '\n你的宝剑磨损了，还需要等 %ds 才能修复😓'%(math.ceil(float(memc[4]) - time.time())) + otherinfo(flag)),
             )
             return
+        if float(memc[9]) - time.time() > 0:
+            await app.send_message(
+                group,
+                MessageChain(At(member.id), '\n你的宝剑已冻结'),
+            )
+            return
         if float(tarc[4]) - time.time() > 0:
             await app.send_message(
                 group,
                 MessageChain(At(member.id), '\n宝剑 %s 磨损了😓'%(tarc[1]) + otherinfo(flag)),
             )   
+            return
+        if float(tarc[9]) - time.time() > 0:
+            await app.send_message(
+                group,
+                MessageChain(At(member.id), '\n宝剑 %s 已冻结'%(tarc[1]) + otherinfo(flag)),
+            )
             return
         qk = random.randint(0, 3)
         dd = random.uniform(3, 40)
@@ -364,10 +392,28 @@ async def pk(app: Ariadne, group: Group, member: Member, message: MessageChain =
     if flag & IS_IN_BLACKLIST:
         await app.send_message(
             group,
-            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
         )
         return
-
+    memc = getniuzi(member.id)
+    if memc == None:
+        await app.send_message(
+            group,
+            MessageChain(At(member.id), '\n你还没有宝剑，尝试 白嫖宝剑' + otherinfo(flag)),
+        )
+        return
+    if float(memc[4]) - time.time() > 0:
+        await app.send_message(
+            group,
+            MessageChain(At(member.id), '\n你的宝剑磨损了，还需要等 %ds 才能修复😓'%(math.ceil(float(memc[4]) - time.time())) + otherinfo(flag)),
+        )
+        return
+    if float(memc[9]) - time.time() > 0:
+        await app.send_message(
+            group,
+            MessageChain(At(member.id), '\n你的宝剑已冻结'),
+        )
+        return
     newmes = message.include(At)
     if At(app.account) in newmes:
         await app.send_message(
@@ -385,19 +431,6 @@ async def pk(app: Ariadne, group: Group, member: Member, message: MessageChain =
         await app.send_message(
             group,
             MessageChain(At(member.id), '\n你想和谁比划😓\n在“比划比划”后面@ta' + otherinfo(flag)),
-        )
-        return
-    memc = getniuzi(member.id)
-    if memc == None:
-        await app.send_message(
-            group,
-            MessageChain(At(member.id), '\n你还没有宝剑，尝试 白嫖宝剑' + otherinfo(flag)),
-        )
-        return
-    if float(memc[4]) - time.time() > 0:
-        await app.send_message(
-            group,
-            MessageChain(At(member.id), '\n你的宝剑磨损了，还需要等 %ds 才能修复😓'%(math.ceil(float(memc[4]) - time.time())) + otherinfo(flag)),
         )
         return
     member_list = await app.get_member_list(group)
@@ -420,6 +453,12 @@ async def pk(app: Ariadne, group: Group, member: Member, message: MessageChain =
                 await app.send_message(
                     group,
                     MessageChain(At(member.id), '\n对方的宝剑磨损了😓' + otherinfo(flag)),
+                )
+                return
+            elif float(tarc[9]) - time.time() > 0:
+                await app.send_message(
+                    group,
+                    MessageChain(At(member.id), '\n对方的宝剑已冻结'),
                 )
                 return
             else:
@@ -467,7 +506,7 @@ async def phb(app: Ariadne, group: Group, member: Member, message: MessageChain 
         if flag & IS_IN_BLACKLIST:
             await app.send_message(
                 group,
-                MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+                MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
             )
             return
         if message.display == '总':
@@ -545,6 +584,38 @@ async def phb(app: Ariadne, group: Group, member: Member, message: MessageChain 
         )
     return
 
+@channel.use(ListenerSchema(
+        listening_events=[GroupMessage],
+        decorators=[MatchContent("冻结宝剑")],
+    ))
+async def dongjie(app: Ariadne, group: Group, member: Member, message: MessageChain = MatchContent("冻结宝剑")):
+    try:
+        flag = await check_usr_stat(app, group, member)
+        if flag & IS_IN_BLACKLIST:
+            await app.send_message(
+                group,
+                MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
+            )
+            return
+        cc = getniuzi(member.id)
+        if cc == None:
+            await app.send_message(
+                group,
+                MessageChain(At(member.id), f'\n你没有宝剑，不需要冻结'),
+            )
+            return
+        __setniuzi(cc=cc, djtuntil=str(time.time() + 3600 * 24 * 365), length=str(float(cc[3]) - 2500), npy=-1)
+        await app.send_message(
+                group,
+                MessageChain(At(member.id), f'\n冻结成功，长度减2500，对象已自动解绑，一年后自动解冻'),
+            )
+    except Exception as e:
+        await app.send_message(
+                group,
+                MessageChain(e.args),
+            )
+        pass
+    return
 
 @channel.use(ListenerSchema(
         listening_events=[GroupMessage],
@@ -555,7 +626,7 @@ async def qiandao(app: Ariadne, group: Group, member: Member, message: MessageCh
     if flag & IS_IN_BLACKLIST:
         await app.send_message(
             group,
-            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
         )
         return
     
@@ -564,6 +635,12 @@ async def qiandao(app: Ariadne, group: Group, member: Member, message: MessageCh
         await app.send_message(
             group,
             MessageChain(At(member.id), '\n你好像还没有宝剑😓，尝试 白嫖宝剑' + otherinfo(flag)),
+        )
+        return
+    if float(c[9]) - time.time() > 0:
+        await app.send_message(
+            group,
+            MessageChain(At(member.id), '\n你的宝剑已冻结'),
         )
         return
     if float(c[7]) - time.time() > 0:
@@ -618,10 +695,22 @@ async def setniuziname(app: Ariadne, group: Group, member: Member, message: Mess
     if flag & IS_IN_BLACKLIST:
         await app.send_message(
             group,
-            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
         )
         return
-
+    memc = getniuzi(member.id)
+    if memc == None:
+        await app.send_message(
+            group,
+            MessageChain(At(member.id), '\n你还没有宝剑，尝试 白嫖宝剑' + otherinfo(flag)),
+        )
+        return
+    if float(memc[9]) - time.time() > 0:
+        await app.send_message(
+            group,
+            MessageChain(At(member.id), '\n你的宝剑已冻结'),
+        )
+        return
     newmes = message.include(At)
     if len(newmes) > 1:
         await app.send_message(
@@ -641,13 +730,6 @@ async def setniuziname(app: Ariadne, group: Group, member: Member, message: Mess
             MessageChain(At(member.id), '\n你和机器人绑定个啥啊😓' + otherinfo(flag)),
         )
         return
-    memc = getniuzi(member.id)
-    if memc == None:
-        await app.send_message(
-            group,
-            MessageChain(At(member.id), '\n你还没有宝剑，尝试 白嫖宝剑' + otherinfo(flag)),
-        )
-        return
     member_list = await app.get_member_list(group)
     for tar in member_list:
         if At(tar) in newmes:
@@ -658,6 +740,12 @@ async def setniuziname(app: Ariadne, group: Group, member: Member, message: Mess
                 )
                 return
             tarc = getniuzi(tar.id)
+            if float(tarc[9]) - time.time() > 0:
+                await app.send_message(
+                    group,
+                    MessageChain(At(member.id), '\n对方的宝剑已冻结'),
+                )
+                return
             if tarc == None:
                 await app.send_message(
                     group,
@@ -679,7 +767,7 @@ async def setniuziname(app: Ariadne, group: Group, member: Member, message: Mess
                 return
     await app.send_message(
         group,
-        MessageChain(At(member.id), '\n群里没找到你要比划的人，你怎么@到他的😓' + otherinfo(flag)),
+        MessageChain(At(member.id), '\n群里没找到你要绑定的人，你怎么@到他的😓' + otherinfo(flag)),
     )
     return
 
@@ -692,7 +780,7 @@ async def setniuziname(app: Ariadne, group: Group, member: Member, message: Mess
     if flag & IS_IN_BLACKLIST:
         await app.send_message(
             group,
-            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
         )
         return
 
@@ -703,6 +791,12 @@ async def setniuziname(app: Ariadne, group: Group, member: Member, message: Mess
             MessageChain(At(member.id), '\n你好像还没有宝剑😓，尝试 白嫖宝剑' + otherinfo(flag)),
         )
     else:
+        if float(c[9]) - time.time() > 0:
+            await app.send_message(
+                group,
+                MessageChain(At(member.id), '\n你的宝剑已冻结'),
+            )
+            return
         newname = message.display.replace(" ", "")
         if len(newname) <= 1 or len(newname) >= 31:
             await app.send_message(
@@ -728,7 +822,7 @@ async def tietie(app: Ariadne, group: Group, member: Member, message: MessageCha
     if flag & IS_IN_BLACKLIST:
         await app.send_message(
             group,
-            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config("CoreGroup")}'),
+            MessageChain(At(member.id), f'\n宝剑系统无法使用，请加群 {get_bot_config()["CoreGroup"]}'),
         )
         return
 
@@ -739,6 +833,12 @@ async def tietie(app: Ariadne, group: Group, member: Member, message: MessageCha
             MessageChain(At(member.id), '\n你好像还没有宝剑😓，尝试 白嫖宝剑' + otherinfo(flag)),
         )
     else:
+        if float(c[9]) - time.time() > 0:
+            await app.send_message(
+                group,
+                MessageChain(At(member.id), '\n你的宝剑已冻结'),
+            )
+            return
         if isduixiang(c[0], c[5]) == False:
             await app.send_message(
                 group,
