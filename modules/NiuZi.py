@@ -160,7 +160,7 @@ async def setqiandao():
     with niuzi_Lock:
         conn = sqlite3.connect('NiuZi.db')
         cur = conn.cursor()
-        cur.execute('''UPDATE niuzi SET coffee_tot=0''')
+        cur.execute('''UPDATE niuzi SET coffee_tot=0;''')
         conn.commit()
         conn.close()
 
